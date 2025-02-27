@@ -12,4 +12,4 @@ func RegisterDeviceRoutes(router *gin.Engine){
 		deviceGroup.GET("/:id",controllers.GetDevice)
 
 	}
-}
+}	
