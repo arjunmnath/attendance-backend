@@ -44,8 +44,9 @@ func InitaiteEvent(c *gin.Context) {
 	}
 
 	// Create CurrentPolling entry for the event
-	utils.CurrentPolling[event.ID] = [2]int{0, maxPolls}
-	log.Println(utils.CurrentPolling[event.ID])
+	utils.Polling[event.ID] = []int{1, maxPolls}
+	log.Println(utils.Polling[event.ID])
+
 	// Initialize the graph for the event
 	utils.InitializeGraph(event.ID)
 
@@ -53,6 +54,8 @@ func InitaiteEvent(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create event"})
 		return
 	}
+	// Start polling
+	utils.StartEventPolling(event.ID)
 	c.JSON(http.StatusOK, gin.H{"message": "Event created successfully", "event_id": event.ID})
 
 }
@@ -86,7 +89,7 @@ func DeleteEvent(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID"})
 			return
 		}
-		delete(utils.CurrentPolling, uid)
+		delete(utils.Polling, uid)
 		delete(utils.AttendanceGraph, uid)
 		delete(utils.GraphMutex, uid)
 
@@ -94,4 +97,29 @@ func DeleteEvent(c *gin.Context) {
 
 	}
 
+}
+
+func GetDevicesInEvent(c *gin.Context) {
+	eventID := c.Param("id")
+	var devices []uuid.UUID
+	if err := db.DB.Model(&models.Attendance{}).Where("event_id=?", eventID).Pluck("device_id", &devices).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch devices"})
+		return
+	}
+	c.JSON(http.StatusOK, devices)
+}
+
+func GetEventGraph(c *gin.Context) {
+	eventID := c.Param("id")
+	eventUUID, err := uuid.Parse(eventID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID"})
+		return
+	}
+	graph, exists := utils.AttendanceGraph[eventUUID]
+	if !exists {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Event not found"})
+		return
+	}
+	c.JSON(http.StatusOK, graph)
 }

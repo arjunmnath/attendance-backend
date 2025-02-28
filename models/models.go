@@ -27,4 +27,5 @@ type Attendance struct {
 	DeviceID       int       `gorm:"index;not-null"`
 	EventID        uuid.UUID `gorm:"not-null"`
 	ProximityScore int       `gorm:"default:0"`
+	PollCount      int       `gorm:"default:0"`
 }

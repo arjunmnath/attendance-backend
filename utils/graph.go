@@ -1,9 +1,11 @@
 package utils
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -22,7 +24,7 @@ type EventGraph struct {
 var (
 	GraphMutex      = make(map[uuid.UUID]*sync.Mutex)
 	AttendanceGraph = make(map[uuid.UUID]*EventGraph)
-	CurrentPolling  = make(map[uuid.UUID][2]int)
+	Polling         = make(map[uuid.UUID][]int)
 )
 
 func InitializeGraph(eventID uuid.UUID) {
@@ -72,4 +74,21 @@ func AddEdge(c *gin.Context, eventID uuid.UUID, source, destination int) {
 	graph.Nodes[source][destination]++
 	graph.Nodes[destination][source]++
 
+}
+
+func StartEventPolling(eventID uuid.UUID) {
+	ticker := time.NewTicker(2 * time.Minute)
+	defer ticker.Stop()
+
+	for {
+		if Polling[eventID][0] > Polling[eventID][1] {
+			fmt.Println("Polling completed")
+			return
+		}
+		<-ticker.C
+		Polling[eventID][0]++
+
+		fmt.Println("Polling", Polling[eventID][0], "out of", Polling[eventID][1])
+
+	}
 }
