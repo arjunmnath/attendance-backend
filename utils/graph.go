@@ -79,14 +79,16 @@ func AddEdge(c *gin.Context, eventID uuid.UUID, source, destination int) {
 func StartEventPolling(eventID uuid.UUID) {
 	ticker := time.NewTicker(2 * time.Minute)
 	defer ticker.Stop()
+	fmt.Println("Polling started")
 
 	for {
 		if Polling[eventID][0] > Polling[eventID][1] {
 			fmt.Println("Polling completed")
 			return
 		}
-		<-ticker.C
+		fmt.Println("Incrementing poll count")
 		Polling[eventID][0]++
+		<-ticker.C
 
 		fmt.Println("Polling", Polling[eventID][0], "out of", Polling[eventID][1])
 
