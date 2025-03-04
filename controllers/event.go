@@ -29,7 +29,7 @@ func InitaiteEvent(c *gin.Context) {
 	if alreadyExists := db.DB.First(&models.CurrentEvents{}, "start_time=? AND end_time=? AND location=?", input.StartTime, input.EndTime, input.Location); alreadyExists.Error == nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Event already exists"})
 		return
-	}k
+	}
 
 	event := models.CurrentEvents{
 		ID:        uuid.New(),
@@ -57,7 +57,7 @@ func InitaiteEvent(c *gin.Context) {
 	}
 	// Start polling
 	log.Println("Starting polling")
-	go  utils.StartEventPolling(event.ID)
+	go utils.StartEventPolling(event.ID)
 	c.JSON(http.StatusOK, gin.H{"message": "Event created successfully", "event_id": event.ID})
 
 }
