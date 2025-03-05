@@ -4,8 +4,10 @@ import (
 	"attendance-backend/db"
 	"attendance-backend/models"
 	"attendance-backend/utils"
+	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -52,7 +54,6 @@ func Participate(c *gin.Context) {
 		return
 	}
 
-
 	attendance := models.Attendance{
 		ID:             uuid.New(),
 		DeviceID:       input.DeviceID,
@@ -65,7 +66,64 @@ func Participate(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to participate in event"})
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, gin.H{"message": "Participation successful"})
 
+}
+
+func ConnectSSE(c *gin.Context) {
+	eventID, _ := uuid.Parse(c.Param("event_id"))
+	deviceID, noDeviceIdErr := strconv.Atoi(c.Query("device_id"))
+
+	if _, exists := utils.EventDevices[eventID]; !exists {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Event does not exist"})
+		return
+	}
+
+	if noDeviceIdErr != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Device ID not provided"})
+		return
+	}
+
+	if _, exists := utils.EventDevices[eventID].Channel[deviceID]; !exists {
+		utils.EventDevices[eventID].Channel[deviceID] = make(chan string, 10)
+	}
+
+	ch := utils.EventDevices[eventID].Channel[deviceID]
+
+	defer func() {
+		close(ch)
+		delete(utils.EventDevices[eventID].Channel, deviceID)
+		fmt.Println("Client disconnected: ", deviceID)
+	}()
+
+	c.Writer.Header().Set("Content-Type", "text/event-stream")
+	c.Writer.Header().Set("Cache-Control", "no-cache")
+	c.Writer.Header().Set("Connection", "keep-alive")
+
+	fmt.Fprint(c.Writer, "Event-Stream Connected\n\n")
+	c.Writer.Flush()
+
+	notify := c.Writer.CloseNotify()
+
+	for {
+		select {
+		case msg := <-ch:
+			fmt.Fprintf(c.Writer, "data: %s\n\n", msg)
+			c.Writer.Flush()
+		// Exists the loop if the client closes the connection
+		case <-notify:
+			return
+		}
+
+	}
+
+}
+
+func SendMessage(eventID uuid.UUID, deviceID int, message string) {
+	if event, exists := utils.EventDevices[eventID]; exists {
+		if ch, deviceExists := event.Channel[deviceID]; deviceExists {
+			ch <- message
+		}
+	}
 }

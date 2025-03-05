@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"attendance-backend/db"
+	"attendance-backend/models"
 	"fmt"
 	"log"
 	"net/http"
@@ -13,7 +15,6 @@ import (
 
 type EventGraph struct {
 	Nodes map[int]map[int]int
-
 	/*
 		1: {2: 1, 3: 1}
 		2: {1: 1}
@@ -21,10 +22,16 @@ type EventGraph struct {
 	*/
 }
 
+type DeviceCollection struct {
+	Devices map[int]int
+	Channel map[int]chan string
+}
+
 var (
 	GraphMutex      = make(map[uuid.UUID]*sync.Mutex)
 	AttendanceGraph = make(map[uuid.UUID]*EventGraph)
 	Polling         = make(map[uuid.UUID][]int)
+	EventDevices    = make(map[uuid.UUID]DeviceCollection)
 )
 
 func InitializeGraph(eventID uuid.UUID) {
@@ -40,7 +47,7 @@ func InitializeGraph(eventID uuid.UUID) {
 			Nodes: make(map[int]map[int]int),
 		}
 
-		log.Println("Graph initialized")
+		fmt.Println("Graph initialized")
 	}
 
 }
@@ -76,6 +83,39 @@ func AddEdge(c *gin.Context, eventID uuid.UUID, source, destination int) {
 
 }
 
+// Implement this function
+func setAggregators(eventID uuid.UUID) {
+
+	var devOg []int
+	if err := db.DB.Model(&models.Attendance{}).Where("event_id=?", eventID).Pluck("device_id", &devOg).Error; err != nil {
+		fmt.Println("Failed to fetch devices for the event")
+		return
+	}
+
+	if _, exists := EventDevices[eventID]; !exists {
+
+		fmt.Printf("EventDevices not initialized for event %v", eventID)
+		return
+	}
+
+	deviceCollection := EventDevices[eventID]
+
+	for _, device := range devOg {
+
+		if _, exists := deviceCollection.Devices[device]; !exists {
+
+			deviceCollection.Devices[device] = 0
+		}
+	}
+	aggregatorCount := len(deviceCollection.Devices) / 3
+	selected := SelectAggregators(deviceCollection.Devices, aggregatorCount)
+	fmt.Println("Current devices and their SelectCount", deviceCollection.Devices)
+	fmt.Println("Aggregators selected for event", eventID, ":", selected)
+
+	EventDevices[eventID] = deviceCollection
+
+}
+
 func StartEventPolling(eventID uuid.UUID) {
 	ticker := time.NewTicker(2 * time.Minute)
 	defer ticker.Stop()
@@ -88,9 +128,19 @@ func StartEventPolling(eventID uuid.UUID) {
 		}
 		fmt.Println("Incrementing poll count")
 		Polling[eventID][0]++
+		setAggregators(eventID)
 		<-ticker.C
+		sendMessage(eventID, 5001, "First Message")
 
 		fmt.Println("Polling", Polling[eventID][0], "out of", Polling[eventID][1])
 
+	}
+}
+
+func sendMessage(eventID uuid.UUID, deviceID int, message string) {
+	if event, exists := EventDevices[eventID]; exists {
+		if ch, deviceExists := event.Channel[deviceID]; deviceExists {
+			ch <- message
+		}
 	}
 }

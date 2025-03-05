@@ -39,6 +39,7 @@ func main() {
 
 	r.POST("/device/participate", controllers.Participate)
 	r.POST("/device/proximity-update", controllers.ProximityUpdate)
+	r.GET("/connectSSE/:event_id", controllers.ConnectSSE)
 
 	for _, route := range r.Routes() {
 		fmt.Println(route.Method, route.Path)

@@ -32,6 +32,11 @@ func ProximityUpdate(c *gin.Context) {
 	// This is a bug that needs to be fixed
 	// The graph should be updated only if the transaction is successful
 
+	var edges []struct {
+		Source      int
+		Destination int
+	}
+
 	err := db.DB.Transaction(func(tx *gorm.DB) error {
 		var attendance models.Attendance
 
@@ -73,7 +78,13 @@ func ProximityUpdate(c *gin.Context) {
 			}
 
 			// Add edge between the devices in the memory graph
-			utils.AddEdge(c, input.EventID, input.Source, device)
+			// utils.AddEdge(c, input.EventID, input.Source, device)
+
+			// Store edge in temporary list
+			edges = append(edges, struct {
+				Source      int
+				Destination int
+			}{input.Source, device})
 
 			// Update the poll count
 			if err := tx.Model(&models.Attendance{}).
@@ -93,7 +104,11 @@ func ProximityUpdate(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Attendance updated successfully"})
+	for _, edge := range edges {
+		utils.AddEdge(c, input.EventID, edge.Source, edge.Destination)
+
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Proximity updated successfully"})
 
 }
 

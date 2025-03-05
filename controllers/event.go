@@ -50,6 +50,7 @@ func InitaiteEvent(c *gin.Context) {
 
 	// Initialize the graph for the event
 	utils.InitializeGraph(event.ID)
+	utils.InitializeEventDevices(event.ID)
 
 	if err := db.DB.Create(&event).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create event"})
@@ -103,7 +104,7 @@ func DeleteEvent(c *gin.Context) {
 
 func GetDevicesInEvent(c *gin.Context) {
 	eventID := c.Param("id")
-	var devices []uuid.UUID
+	var devices []int
 	if err := db.DB.Model(&models.Attendance{}).Where("event_id=?", eventID).Pluck("device_id", &devices).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch devices"})
 		return
