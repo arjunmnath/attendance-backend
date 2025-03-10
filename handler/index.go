@@ -21,12 +21,12 @@ func init() {
     /*
 	db.DB.Migrator().DropTable(&models.Device{}, &models.CurrentEvents{}, &models.Attendance{})
 	err := db.DB.AutoMigrate(&models.Device{}, &models.CurrentEvents{}, &models.Attendance{})
-    */
+
 	if err != nil {
 		log.Fatal("Failed to migrate the database", err)
 	}
 	log.Println("Database migrated successfully")
-
+    */
 
 	seeder.Seeder()
     Engine = gin.Default()
