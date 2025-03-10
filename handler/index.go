@@ -4,7 +4,6 @@ import (
 	"attendance-backend/controllers"
 	"attendance-backend/db"
 	"attendance-backend/seeder"
-	"log"
 	"net/http"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
