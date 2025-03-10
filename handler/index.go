@@ -19,8 +19,10 @@ func init() {
 	db.ConnectDatabase()
 
 	// For production only, drops the preexisting tables and creates new ones
+    /*
 	db.DB.Migrator().DropTable(&models.Device{}, &models.CurrentEvents{}, &models.Attendance{})
 	err := db.DB.AutoMigrate(&models.Device{}, &models.CurrentEvents{}, &models.Attendance{})
+    */
 	if err != nil {
 		log.Fatal("Failed to migrate the database", err)
 	}
