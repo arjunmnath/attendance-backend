@@ -3,9 +3,7 @@ package handler
 import (
 	"attendance-backend/controllers"
 	"attendance-backend/db"
-	"attendance-backend/models"
 	"attendance-backend/seeder"
-	"log"
 	"net/http"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -22,12 +20,11 @@ func init() {
     /*
 	db.DB.Migrator().DropTable(&models.Device{}, &models.CurrentEvents{}, &models.Attendance{})
 	err := db.DB.AutoMigrate(&models.Device{}, &models.CurrentEvents{}, &models.Attendance{})
-    */
 	if err != nil {
 		log.Fatal("Failed to migrate the database", err)
 	}
 	log.Println("Database migrated successfully")
-
+    */
 
 	seeder.Seeder()
     Engine = gin.Default()
