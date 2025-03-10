@@ -3,7 +3,6 @@ package handler
 import (
 	"attendance-backend/controllers"
 	"attendance-backend/db"
-	"attendance-backend/models"
 	"attendance-backend/seeder"
 	"log"
 	"net/http"
